@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>농구공 충돌 애니메이션</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #eee;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="myCanvas"></canvas>
+  <div>
+    <button onclick="start()">▶ 시작</button>
+    <button onclick="stop()">⏸ 멈춤</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // 화면 꽉 채우기
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 60; // 버튼 영역 제외
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    const bgImg = new Image();
+    bgImg.src = "back.jpg"; // 배경 이미지
+    const ballImg = new Image();
+    ballImg.src = "ball1.png"; // 농구공 이미지
+
+    const BALL_SIZE = 100;
+    const RADIUS = BALL_SIZE / 2;
+    const balls = [];
+
+    // 농구공 9개 랜덤 생성
+    for (let i = 0; i < 9; i++) {
+      balls.push({
+        x: Math.random() * (canvas.width - BALL_SIZE),
+        y: Math.random() * (canvas.height - BALL_SIZE),
+        dx: (Math.random() * 3 + 2) * (Math.random() > 0.5 ? 1 : -1),
+        dy: (Math.random() * 3 + 2) * (Math.random() > 0.5 ? 1 : -1),
+        w: BALL_SIZE,
+        h: BALL_SIZE,
+        img: ballImg
+      });
+    }
+
+    let animationId = null;
+
+    function detectCollision(ballA, ballB) {
+      const dx = (ballA.x + RADIUS) - (ballB.x + RADIUS);
+      const dy = (ballA.y + RADIUS) - (ballB.y + RADIUS);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      return distance < RADIUS * 2; // 두 원이 겹치면 충돌
+    }
+
+    function handleCollisions() {
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          if (detectCollision(balls[i], balls[j])) {
+            // 속도 벡터 단순 교환
+            const tempDx = balls[i].dx;
+            const tempDy = balls[i].dy;
+            balls[i].dx = balls[j].dx;
+            balls[i].dy = balls[j].dy;
+            balls[j].dx = tempDx;
+            balls[j].dy = tempDy;
+          }
+        }
+      }
+    }
+
+    function draw() {
+      // 배경
+      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+      // 공 이동 + 그리기
+      balls.forEach(ball => {
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        // 벽 충돌
+        if (ball.x <= 0 || ball.x + ball.w >= canvas.width) {
+          ball.dx *= -1;
+        }
+        if (ball.y <= 0 || ball.y + ball.h >= canvas.height) {
+          ball.dy *= -1;
+        }
+
+        ctx.drawImage(ball.img, ball.x, ball.y, ball.w, ball.h);
+      });
+
+      // 공끼리 충돌 처리
+      handleCollisions();
+
+      animationId = requestAnimationFrame(draw);
+    }
+
+    function start() {
+      if (!animationId) {
+        animationId = requestAnimationFrame(draw);
+      }
+    }
+
+    function stop() {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+
+    // 이미지 로드 후 실행
+    let loaded = 0;
+    [bgImg, ballImg].forEach(img => {
+      img.onload = () => {
+        loaded++;
+        if (loaded === 2) {
+          start(); // 자동 시작하려면 여기서 실행
+        }
+      };
+    });
+  </script>
+</body>
+</html>
